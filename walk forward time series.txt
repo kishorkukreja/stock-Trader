@@ -1,0 +1,49 @@
+def TIME_MACHINE():
+    pd.options.mode.chained_assignment = None  # default='warn'
+    n = 23
+    GENERATED_TEST  = pd.DataFrame()
+    YEAR_LIST = [2013, 2014, 2015, 2016, 2017]
+    for year in YEAR_LIST:
+        print ("Predicting for the year:", year)
+        for month in (set(X_TRAIN_RAW['Month'])):
+            YR = year
+            
+            if year == 2013:
+                M = 7
+                while M <= 12:
+                    X  = X_TRAIN_RAW[(X_TRAIN_RAW['Day'] <= n) & (X_TRAIN_RAW['Month'] <= M) & (X_TRAIN_RAW['Year'] <= YR) ].drop('electricity_consumption', axis=1)
+                    y = X_TRAIN_RAW[(X_TRAIN_RAW['Day'] <= n) & (X_TRAIN_RAW['Month'] <= M) & (X_TRAIN_RAW['Year'] <= YR) ].electricity_consumption
+                    X_TEST  = X_TEST_RAW[(X_TEST_RAW['Day'] > 23 ) & (X_TEST_RAW['Month'] <= M) & (X_TEST_RAW['Year'] <= YR) ].drop('electricity_consumption', axis=1)          
+                    
+                    
+                    X = X[cols]
+                    
+                    light.fit(X, np.log1p(y))
+                    pred = light.predict(X_TEST[cols])
+                    X_TEST['electricity_consumption'] = pred
+                    GENERATED_TEST = pd.concat([GENERATED_TEST,X_TEST])   
+                    M = M + 1
+            else: 
+                M = month
+
+                  
+                X = X_TRAIN_RAW[(X_TRAIN_RAW['Day'] < n) & (X_TRAIN_RAW['Month'] <= M) & (X_TRAIN_RAW['Year'] <= YR) ].drop('electricity_consumption', axis=1)
+                y = X_TRAIN_RAW[(X_TRAIN_RAW['Day'] < n) & (X_TRAIN_RAW['Month'] <= M) & (X_TRAIN_RAW['Year'] <= YR) ].electricity_consumption
+
+                X_TEST  = X_TEST_RAW[(X_TEST_RAW['Day'] > 23 ) & (X_TEST_RAW['Month'] <= M) & (X_TEST_RAW['Year'] <= YR) ].drop('electricity_consumption', axis=1)
+
+                X = X[cols]
+
+                light.fit(X, np.log1p(y))
+                pred = light.predict(X_TEST[cols])
+                X_TEST['electricity_consumption'] = pred
+                GENERATED_TEST = pd.concat([GENERATED_TEST,X_TEST])
+                
+    GENt = GENERATED_TEST[['Year', 'Day','Month', 'Hour','DOW','electricity_consumption']]
+    test_feats['ID'] = test['ID'].values
+    REAL_PREDS = pd.merge(GENt,test_feats , on=['Year','Day', 'Month', 'Hour', 'DOW'])
+    REAL_PREDS = REAL_PREDS[['electricity_consumption_x','ID']].sort_values(by='ID', ascending=1).rename(columns={
+    'electricity_consumption_x':'electricity_consumption'})[['ID','electricity_consumption']]
+    PREDS =  np.expm1(REAL_PREDS['electricity_consumption']).values
+    REAL_PREDS['electricity_consumption'] = PREDS
+    return PREDS,REAL_PREDS
